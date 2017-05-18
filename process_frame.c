@@ -16,6 +16,7 @@
 #define IMG_SIZE NUM_COLORS*OSC_CAM_MAX_IMAGE_WIDTH*OSC_CAM_MAX_IMAGE_HEIGHT
 #define RGB 0 //1 for RGB, 0 for YCbCr
 
+
 const int nc = OSC_CAM_MAX_IMAGE_WIDTH;
 const int nr = OSC_CAM_MAX_IMAGE_HEIGHT;
 
@@ -37,8 +38,9 @@ void Binarize(unsigned char threshold);
 void Erode_3x3(int InIndex, int OutIndex);
 void Dilate_3x3(int InIndex, int OutIndex);
 void DetectRegions();
-void DrawBoundingBoxes(); //int* color
+void DrawBoundingBoxes();
 void ChangeDetection();
+enum ObjColor detectColor(int index);
 
 
 void ResetProcess()
@@ -56,18 +58,20 @@ void ProcessFrame() {
 	if(data.ipc.state.nStepCounter == 1) {
 		ManualThreshold = false;
 	} else {
+
 		unsigned char Threshold = OtsuThreshold(SENSORIMG);
 
 
-
+#if 1//NUM_COLORS == 1
 		Binarize(Threshold);
 
 		Erode_3x3(THRESHOLD, INDEX0);
 		Dilate_3x3(INDEX0, THRESHOLD);
+#endif
 
 		ChangeDetection();
 		DetectRegions();
-		//DrawBoundingBoxes();
+		DrawBoundingBoxes();
 
 		if(ManualThreshold) {
 							char Text[] = "manual threshold";
@@ -77,9 +81,6 @@ void ProcessFrame() {
 							DrawString(20, 20, strlen(Text), SMALL, CYAN, Text);
 						}
 
-
-		//int* frameColor = DetectRegions();
-		//DrawBoundingBoxes(frameColor);
 
 	}
 }
@@ -185,7 +186,8 @@ void Dilate_3x3(int InIndex, int OutIndex)
 void DetectRegions() {
 	struct OSC_PICTURE Pic;
 	int i;
-	int* frameColor = 0;
+
+	memset(data.u8TempImage[INDEX0], 0, IMG_SIZE);
 
 	//set pixel value to 1 in INDEX0 because the image MUST be binary (i.e. values of 0 and 1)
 	for(i = 0; i < IMG_SIZE; i++) {
@@ -201,44 +203,51 @@ void DetectRegions() {
 	//now do region labeling and feature extraction
 	OscVisLabelBinary( &Pic, &ImgRegions);
 	OscVisGetRegionProperties( &ImgRegions);
+}
 
-#if 0//NUM_COLORS == 3
 
-	//loop over objects
-	for(int o = 0; o < ImgRegions.noOfObjects; o++) {
-	//get pointer to root run of current object
-	struct OSC_VIS_REGIONS_RUN* currentRun = ImgRegions.objects[o].root;
-	//loop over runs of current object
+enum ObjColor detectColor(int index){
+
+	struct OSC_VIS_REGIONS_RUN* currentRun = ImgRegions.objects[index].root;
+
+	int red = 0;
+	int blue = 0;
+
+	//get blue and red color value
 		do {
 			//loop over pixel of current run
 			for(int c = currentRun->startColumn; c <= currentRun->endColumn; c++) {
 				int r = currentRun->row;
 				//loop over color planes of pixel
-				for(int p = 1; p < NUM_COLORS; p++) {
-					data.u8TempImage[SENSORIMG][(r * nc + c) * NUM_COLORS+p] = data.u8TempImage[THRESHOLD][(r * nc + c) * NUM_COLORS+p];
-					}
+				red += data.u8TempImage[SENSORIMG][(r * nc + c) * NUM_COLORS + 2];
+				blue += data.u8TempImage[SENSORIMG][(r * nc + c) * NUM_COLORS];
 			}
 			currentRun = currentRun->next;
 		} while(currentRun != NULL);
+	if (red > blue){
+		printf("RED Color\n\r");
+		return RED; //RED Object
 	}
-	//return frameColor;
-#endif
-	//return 0;
+	return BLUE; //BLUE Object
+
 }
 
 
-// übergabe Pointer zu Farbinformation
-void DrawBoundingBoxes() { //int* color
-	uint16 o;
-	for(o = 0; o < ImgRegions.noOfObjects; o++) {
-		//int actualColor = color[o];
+
+void DrawBoundingBoxes() {
+
+	for(uint16 o = 0; o < ImgRegions.noOfObjects; o++) {
+
 		if(ImgRegions.objects[o].area > MinArea) {
+			// Get Color
+			enum ObjColor actualColor = detectColor(o);
+
 			DrawBoundingBox(ImgRegions.objects[o].bboxLeft,
 							ImgRegions.objects[o].bboxTop,
 							ImgRegions.objects[o].bboxRight,
 							ImgRegions.objects[o].bboxBottom,
 							false,
-							GREEN);
+							actualColor);
 
 			DrawLine(ImgRegions.objects[o].centroidX-SizeCross,
 						ImgRegions.objects[o].centroidY,

@@ -63,8 +63,8 @@ void ProcessFrame() {
 
 		Binarize(Threshold);
 
-		Erode_3x3(THRESHOLD, INDEX0);
-		Dilate_3x3(INDEX0, THRESHOLD);
+		//Erode_3x3(THRESHOLD, INDEX0);
+		//Dilate_3x3(INDEX0, THRESHOLD);
 
 
 		ChangeDetection();
@@ -223,7 +223,6 @@ enum ObjColor detectColor(int index){
 			currentRun = currentRun->next;
 		} while(currentRun != NULL);
 	if (red > blue){
-		printf("RED Color\n\r");
 		return RED; //RED Object
 	}
 	return BLUE; //BLUE Object
@@ -250,12 +249,12 @@ void DrawBoundingBoxes() {
 			DrawLine(ImgRegions.objects[o].centroidX-SizeCross,
 						ImgRegions.objects[o].centroidY,
 						ImgRegions.objects[o].centroidX+SizeCross,
-						ImgRegions.objects[o].centroidY, RED);
+						ImgRegions.objects[o].centroidY, WHITE);
 
 			DrawLine(ImgRegions.objects[o].centroidX,
 					ImgRegions.objects[o].centroidY-SizeCross,
 					ImgRegions.objects[o].centroidX,
-					ImgRegions.objects[o].centroidY+SizeCross, RED);
+					ImgRegions.objects[o].centroidY+SizeCross, WHITE);
 
 		}
 	}
@@ -328,8 +327,6 @@ void ChangeDetection() {
 	 data.u8TempImage[THRESHOLD][(r+c)*NUM_COLORS+0] = Y_;
 	 data.u8TempImage[THRESHOLD][(r+c)*NUM_COLORS+1] = Cb_;
 	 data.u8TempImage[THRESHOLD][(r+c)*NUM_COLORS+2] = Cr_;
-
-
 
 
 	//loop over the different Frg colors and find smallest difference

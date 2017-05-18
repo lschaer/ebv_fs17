@@ -61,13 +61,11 @@ void ProcessFrame() {
 
 		unsigned char Threshold = OtsuThreshold(SENSORIMG);
 
-
-#if 1//NUM_COLORS == 1
 		Binarize(Threshold);
 
 		Erode_3x3(THRESHOLD, INDEX0);
 		Dilate_3x3(INDEX0, THRESHOLD);
-#endif
+
 
 		ChangeDetection();
 		DetectRegions();
@@ -191,7 +189,7 @@ void DetectRegions() {
 
 	//set pixel value to 1 in INDEX0 because the image MUST be binary (i.e. values of 0 and 1)
 	for(i = 0; i < IMG_SIZE; i++) {
-		data.u8TempImage[INDEX0][i] = data.u8TempImage[THRESHOLD][i] ? 1 : 0;
+		data.u8TempImage[INDEX0][i] = data.u8TempImage[INDEX1][i] ? 1 : 0;
 	}
 
 	//wrap image INDEX0 in picture struct
@@ -270,6 +268,7 @@ void ChangeDetection() {
 
 	int r, c, frg, p;
 	memset(data.u8TempImage[INDEX0], 0, IMG_SIZE);
+	memset(data.u8TempImage[INDEX1], 0, IMG_SIZE);
 	memset(data.u8TempImage[BACKGROUND], 0, IMG_SIZE);
 	memset(data.u8TempImage[THRESHOLD], 0, IMG_SIZE);
 
@@ -329,6 +328,9 @@ void ChangeDetection() {
 	 data.u8TempImage[THRESHOLD][(r+c)*NUM_COLORS+0] = Y_;
 	 data.u8TempImage[THRESHOLD][(r+c)*NUM_COLORS+1] = Cb_;
 	 data.u8TempImage[THRESHOLD][(r+c)*NUM_COLORS+2] = Cr_;
+
+
+
 
 	//loop over the different Frg colors and find smallest difference
 						int MinDif = 1 << 30;
